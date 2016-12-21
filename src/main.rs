@@ -4,10 +4,11 @@ mod core {
     #[derive(Debug)]
     pub struct Column<'a> {
         name: &'a str,
-        data: Vec<f64>, 
+        data: Box<Vec<f64>>, 
     }
 
     pub struct Table<'a> {
+        size: usize,
         columns: Vec<Column<'a>>
     }
 
@@ -29,18 +30,25 @@ mod core {
     }
 
     impl<'a> Table<'a> {
-        pub fn new() -> Table<'a> {
-            let quantities = Vec::from_iter((0..10000).map(|_| 100.0));
-            let prices = Vec::from_iter((0..10000).map(|_| 1.0));
+        pub fn new(size: usize) -> Table<'a> {
+            Table { 
+                size: size,
+                columns: vec![]
+            }
+        }
+
+        pub fn define_column_f64(&mut self, name: &'a str, data: Box<Vec<f64>>) -> &Table<'a> {
+            if data.len() < self.size {
+                panic!("nope!");
+            }
             
-            let c1 = Column { name: "quantity", data: quantities };
-            let c2 = Column { name: "price", data: prices };
-            let columns = vec![c1, c2];
-            return Table { columns: columns };
+            let column = Column { name: name, data: data };
+            self.columns.push(column);
+            self
         }
 
         fn column(&self, name: &str) -> &Column<'a> {
-            return self.columns.iter().find(|x| x.name == name).unwrap();
+            self.columns.iter().find(|x| x.name == name).unwrap()
         }
 
         pub fn zip_columns(&self, first: &str, second: &str) -> Vec<Allocation> {
@@ -53,7 +61,7 @@ mod core {
             let base = market_values.map(|x| x * 0.07);
             let allocations = base.map(|x| Allocation::Value(x));
 
-            return Vec::from_iter(allocations);
+            Vec::from_iter(allocations)
         }
     }
 
@@ -76,6 +84,7 @@ fn main() {
 
 #[cfg(test)]
 mod test {
+    use std::iter::FromIterator;
     use core::{Rule, Table, Calculator, CalculationResult, calculate_total};
 
     struct SimpleCalculator {}
@@ -89,7 +98,7 @@ mod test {
     impl Calculator for SimpleCalculator {
         fn calculate(&self, table: &Table) -> CalculationResult {
             let results = table.zip_columns("quantity", "price");
-            return CalculationResult::Value(results);
+            CalculationResult::Value(results)
         }
     }
 
@@ -97,15 +106,20 @@ mod test {
 
     impl Rule for SampleRule {
         fn create_calculator(&self) -> Box<Calculator> {
-            return Box::new(SimpleCalculator::new());
+            Box::new(SimpleCalculator::new())
         }
     }
 
     #[test]
     fn distance_test() {
-        let table = Table::new();
+        let quantities = Vec::from_iter((0..10000).map(|_| 100.0));
+        let prices = Vec::from_iter((0..10000).map(|_| 1.0));
+        
+        let mut table = Table::new(10000);
+        table.define_column_f64("quantity", Box::new(quantities));
+        table.define_column_f64("price", Box::new(prices));
 
-        let rule = SampleRule{};
+        let rule = SampleRule { };
 
         let calculator = rule.create_calculator();
         let result = calculator.calculate(&table);
