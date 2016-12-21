@@ -4,21 +4,21 @@ mod core {
     #[derive(Debug)]
     pub struct Column<'a> {
         name: &'a str,
-        data: Box<Vec<f64>>, 
+        data: Box<Vec<f64>>,
     }
 
     pub struct Table<'a> {
         size: usize,
-        columns: Vec<Column<'a>>
+        columns: Vec<Column<'a>>,
     }
 
     pub enum Allocation {
-        Value(f64)
+        Value(f64),
     }
 
     pub enum CalculationResult {
         Value(Vec<Allocation>),
-        Conditional
+        Conditional,
     }
 
     pub trait Calculator {
@@ -31,9 +31,9 @@ mod core {
 
     impl<'a> Table<'a> {
         pub fn new(size: usize) -> Table<'a> {
-            Table { 
+            Table {
                 size: size,
-                columns: vec![]
+                columns: vec![],
             }
         }
 
@@ -41,8 +41,11 @@ mod core {
             if data.len() < self.size {
                 panic!("nope!");
             }
-            
-            let column = Column { name: name, data: data };
+
+            let column = Column {
+                name: name,
+                data: data,
+            };
             self.columns.push(column);
             self
         }
@@ -55,9 +58,11 @@ mod core {
             let c1 = self.column(first);
             let c2 = self.column(second);
 
-            let market_values = c1.data.iter().zip(c2.data.iter())
+            let market_values = c1.data
+                .iter()
+                .zip(c2.data.iter())
                 .map(|x| x.0 * x.1);
-            
+
             let base = market_values.map(|x| x * 0.07);
             let allocations = base.map(|x| Allocation::Value(x));
 
@@ -67,15 +72,16 @@ mod core {
 
     pub fn calculate_total(result: CalculationResult) -> f64 {
         match result {
-            CalculationResult::Value(allocations) =>
-                allocations.iter().map(|x| 
-                    match x {
-                        &Allocation::Value(x) => x
-                    }
-                ).sum(),
-            _ => 0.0
-        } 
-     }
+            CalculationResult::Value(allocations) => {
+                allocations.iter()
+                    .map(|x| match x {
+                        &Allocation::Value(x) => x,
+                    })
+                    .sum()
+            }
+            _ => 0.0,
+        }
+    }
 }
 
 fn main() {
@@ -89,9 +95,9 @@ mod test {
 
     struct SimpleCalculator {}
 
-    impl SimpleCalculator{
+    impl SimpleCalculator {
         fn new() -> SimpleCalculator {
-            SimpleCalculator{}
+            SimpleCalculator {}
         }
     }
 
@@ -114,12 +120,12 @@ mod test {
     fn distance_test() {
         let quantities = Vec::from_iter((0..10000).map(|_| 100.0));
         let prices = Vec::from_iter((0..10000).map(|_| 1.0));
-        
+
         let mut table = Table::new(10000);
         table.define_column_f64("quantity", Box::new(quantities));
         table.define_column_f64("price", Box::new(prices));
 
-        let rule = SampleRule { };
+        let rule = SampleRule {};
 
         let calculator = rule.create_calculator();
         let result = calculator.calculate(&table);
